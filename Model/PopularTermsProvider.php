@@ -63,7 +63,7 @@ class PopularTermsProvider implements PopularTermsProviderInterface
         $timePeriod = $this->config->getTimePeriod($storeId);
         if ($timePeriod > 0) {
             // FIX: Use Magento GMT Date for DB comparison to ensure timezone consistency
-            $dateLimit = $this->ConvertDateTime->gmtDate(DateTime::DATETIME_PHP_FORMAT, strtotime("-$timePeriod days"));
+            $dateLimit = $this->dateTime->gmtDate(DateTime::DATETIME_PHP_FORMAT, strtotime("-$timePeriod days"));
             $collection->addFieldToFilter('updated_at', ['gt' => $dateLimit]);
         }
 
