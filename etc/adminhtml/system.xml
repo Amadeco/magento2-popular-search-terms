@@ -15,22 +15,26 @@
             <group id="popular_search_terms" translate="label" type="text" sortOrder="500" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Popular Search Terms</label>
                 <resource>Amadeco_PopularSearchTerms::config</resource>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Enable Module</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <source_model>Magento\Config\Model\Config\Source\Enabledisable</source_model>
                     <comment>Enable or disable the Popular Search Terms widget</comment>
                 </field>
-                <field id="number_of_terms" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    
+                <field id="number_of_terms" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Number of Terms</label>
                     <validate>validate-number validate-greater-than-zero</validate>
                     <comment>Number of search terms to display</comment>
                 </field>
-                <field id="sort_order" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    
+                <field id="sort_order" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Sort Order</label>
                     <source_model>Amadeco\PopularSearchTerms\Model\Config\Source\SortOrder</source_model>
                     <comment>How to sort the search terms</comment>
                 </field>
-                <field id="time_period" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    
+                <field id="time_period" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Time Period (days)</label>
                     <validate>validate-number validate-greater-than-zero</validate>
                     <comment>Number of days to look back for search terms</comment>
