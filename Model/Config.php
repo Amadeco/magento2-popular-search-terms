@@ -29,6 +29,11 @@ class Config
     public const XML_PATH_NUMBER_OF_TERMS = 'catalog/popular_search_terms/number_of_terms';
 
     /**
+     * XML path for max recent searches config
+     */
+    public const XML_PATH_MAX_RECENT_SEARCHES = 'catalog/popular_search_terms/max_recent_searches';
+
+    /**
      * XML path for sort order config
      */
     public const XML_PATH_SORT_ORDER = 'catalog/popular_search_terms/sort_order';
@@ -70,6 +75,21 @@ class Config
     {
         return (int)$this->scopeConfig->getValue(
             self::XML_PATH_NUMBER_OF_TERMS,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+    
+    /**
+     * Get max recent searches allowed
+     *
+     * @param int|null $storeId
+     * @return int
+     */
+    public function getMaxRecentSearches(?int $storeId = null): int
+    {
+        return (int)$this->scopeConfig->getValue(
+            self::XML_PATH_MAX_RECENT_SEARCHES,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );
