@@ -22,9 +22,14 @@ use Magento\Framework\UrlInterface;
 class SearchTerms implements ArgumentInterface
 {
     /**
-     * Maximum allowed value (Security Cap)
+     * Maximum allowed value for recent searches (History)
      */
     private const MAX_ALLOWED_RECENT_SEARCHES = 10;
+
+    /**
+     * Maximum allowed value for popular terms (Display)
+     */
+    private const MAX_ALLOWED_TERMS = 50;
 
     /**
      * @param PopularTermsProviderInterface $popularTermsProvider
@@ -53,6 +58,7 @@ class SearchTerms implements ArgumentInterface
      * Get search terms configuration
      *
      * @param mixed $maxRecentSearches
+     * @param mixed $numberOfTerms
      * @param mixed $formId
      * @param mixed $inputName
      * @param mixed $storageKey
@@ -60,29 +66,34 @@ class SearchTerms implements ArgumentInterface
      */
     public function getSearchTermsConfig(
         mixed $maxRecentSearches = null,
+        mixed $numberOfTerms = null,
         mixed $formId = null,
         mixed $inputName = null,
         mixed $storageKey = null
     ): array {
-        // Priority: 1. Argument passed (Layout XML), 2. System Config
-        $defaultFromConfig = $this->config->getMaxRecentSearches();
-        
-        $maxRecent = $maxRecentSearches !== null 
-            ? (int)$maxRecentSearches 
-            : $defaultFromConfig;
+        // 1. Resolve Max Recent Searches (Config vs XML)
+        $defaultRecent = $this->config->getMaxRecentSearches();
+        $maxRecent = $maxRecentSearches !== null ? (int)$maxRecentSearches : $defaultRecent;
+        // Cap Recent Searches (1-20)
+        $safeMaxRecent = max(1, min($maxRecent, self::MAX_ALLOWED_RECENT_SEARCHES));
 
+        // 2. Resolve Number of Terms (Config vs XML)
+        $defaultTerms = $this->config->getNumberOfTerms();
+        $numTerms = $numberOfTerms !== null ? (int)$numberOfTerms : $defaultTerms;
+        // Cap Number of Terms (1-50)
+        $safeNumTerms = max(1, min($numTerms, self::MAX_ALLOWED_TERMS));
+
+        // 3. Resolve Form Selectors
         $fId = $formId !== null ? (string)$formId : 'search_mini_form';
         $iName = $inputName !== null ? (string)$inputName : 'q';
         $sKey = $storageKey !== null ? (string)$storageKey : 'recent-searches';
 
-        // Enforce safety cap (Min 1, Max 10)
-        $safeMaxRecent = max(1, min($maxRecent, self::MAX_ALLOWED_RECENT_SEARCHES));
-
-        $initialTerms = $this->popularTermsProvider->getPopularTerms();
+        // Fetch popular terms with the resolved limit
+        $initialTerms = $this->popularTermsProvider->getPopularTerms(null, $safeNumTerms);
 
         return [
             'initialTerms' => $initialTerms,
-            'numberOfTerms' => $this->config->getNumberOfTerms(),
+            'numberOfTerms' => $safeNumTerms,
             'sortOrder' => $this->config->getSortOrder(),
             'searchResultUrl' => $this->urlBuilder->getUrl('catalogsearch/result/'),
             'maxRecentSearches' => $safeMaxRecent,
@@ -98,6 +109,7 @@ class SearchTerms implements ArgumentInterface
      * Get JSON configuration serialized
      *
      * @param mixed $maxRecentSearches
+     * @param mixed $numberOfTerms
      * @param mixed $formId
      * @param mixed $inputName
      * @param mixed $storageKey
@@ -105,12 +117,13 @@ class SearchTerms implements ArgumentInterface
      */
     public function getSerializedSearchTermsConfig(
         mixed $maxRecentSearches = null,
+        mixed $numberOfTerms = null,
         mixed $formId = null,
         mixed $inputName = null,
         mixed $storageKey = null
     ): string {
         return $this->serializer->serialize(
-            $this->getSearchTermsConfig($maxRecentSearches, $formId, $inputName, $storageKey)
+            $this->getSearchTermsConfig($maxRecentSearches, $numberOfTerms, $formId, $inputName, $storageKey)
         );
     }
 }
