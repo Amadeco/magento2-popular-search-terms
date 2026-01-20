@@ -14,7 +14,6 @@ use Amadeco\PopularSearchTerms\Api\PopularTermsProviderInterface;
 use Amadeco\PopularSearchTerms\Model\Config\Source\SortOrder;
 use Magento\Framework\Stdlib\DateTime;
 use Magento\Framework\Stdlib\DateTime\DateTime as ConvertDateTime;
-use Magento\Search\Model\Query;
 use Magento\Search\Model\ResourceModel\Query\Collection as QueryCollection;
 use Magento\Search\Model\ResourceModel\Query\CollectionFactory as QueryCollectionFactory;
 use Magento\Store\Model\StoreManagerInterface;
@@ -41,9 +40,10 @@ class PopularTermsProvider implements PopularTermsProviderInterface
      * Get popular search terms
      *
      * @param int|null $storeId
+     * @param int|null $limit
      * @return array<int, array{query_text: string, popularity: int, updated_at: string}>
      */
-    public function getPopularTerms(?int $storeId = null): array
+    public function getPopularTerms(?int $storeId = null, ?int $limit = null): array
     {
         if (!$this->config->isEnabled($storeId)) {
             return [];
@@ -62,8 +62,10 @@ class PopularTermsProvider implements PopularTermsProviderInterface
         // Apply time period filter if configured
         $timePeriod = $this->config->getTimePeriod($storeId);
         if ($timePeriod > 0) {
-            // FIX: Use Magento GMT Date for DB comparison to ensure timezone consistency
-            $dateLimit = $this->dateTime->gmtDate(DateTime::DATETIME_PHP_FORMAT, strtotime("-$timePeriod days"));
+            $dateLimit = $this->dateTime->gmtDate(
+                DateTime::DATETIME_PHP_FORMAT, 
+                strtotime("-$timePeriod days")
+            );
             $collection->addFieldToFilter('updated_at', ['gt' => $dateLimit]);
         }
 
@@ -72,11 +74,11 @@ class PopularTermsProvider implements PopularTermsProviderInterface
             $collection->setRecentQueryFilter();
         }
 
-        // Limit results
-        $collection->setPageSize($this->config->getNumberOfTerms($storeId));
+        // Determine limit: Use override if present, otherwise config
+        $limit = $limit ?? $this->config->getNumberOfTerms($storeId);
+        $collection->setPageSize($limit);
 
         $result = [];
-        /** @var Query $item */
         foreach ($collection as $item) {
             $result[] = [
                 'query_text' => (string)$item->getQueryText(),
