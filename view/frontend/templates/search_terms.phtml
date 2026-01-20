@@ -40,17 +40,24 @@ $viewModel = $block->getData('view_model');
     </script>
 
     <?php
-    // Get configuration values from block arguments to pass to ViewModel
-    $maxRecent = (int)($block->getData('max_recent_searches') ?? 5);
-    $formId = (string)($block->getData('search_form_id') ?? 'search_mini_form');
-    $inputName = (string)($block->getData('search_input_name') ?? 'q');
-    $storageKey = (string)($block->getData('storage_key') ?? 'recent-searches');
+    // Retrieve configuration from Block Arguments (XML) or Defaults
+    $maxRecent = $block->getData('max_recent_searches');
+    $numTerms = $block->getData('number_of_terms');
+    $formId = $block->getData('search_form_id');
+    $inputName = $block->getData('search_input_name');
+    $storageKey = $block->getData('storage_key');
     
-    $jsonConfig = /* @noEscape */ $viewModel->getSerializedSearchTermsConfig($maxRecent, $formId, $inputName, $storageKey);
+    $jsonConfig = /* @noEscape */ $viewModel->getSerializedSearchTermsConfig(
+        $maxRecent,
+        $numTerms,
+        $formId, 
+        $inputName, 
+        $storageKey
+    );
     
     $scriptString = <<<script
         window.searchTermsConfig = {$jsonConfig};
-    script;
+script;
     ?>
     <?= /* @noEscape */ $secureRenderer->renderTag('script', [], $scriptString, false); ?>
 <?php endif; ?>
