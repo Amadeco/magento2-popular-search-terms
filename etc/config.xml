@@ -15,6 +15,7 @@
             <popular_search_terms>
                 <enabled>1</enabled>
                 <number_of_terms>5</number_of_terms>
+                <max_recent_searches>5</max_recent_searches>
                 <sort_order>popularity</sort_order>
                 <time_period>30</time_period>
             </popular_search_terms>
