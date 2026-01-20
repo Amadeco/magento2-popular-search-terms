@@ -24,17 +24,23 @@
                     
                 <field id="number_of_terms" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Number of Terms</label>
-                    <validate>validate-number validate-greater-than-zero</validate>
-                    <comment>Number of search terms to display</comment>
+                    <validate>validate-number validate-digits-range digits-range-1-50</validate>
+                    <comment>Number of search terms to display (Range: 1-50)</comment>
+                </field>
+
+                <field id="max_recent_searches" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Max Recent Searches</label>
+                    <validate>validate-number validate-digits-range digits-range-1-10</validate>
+                    <comment>Maximum number of recent searches to save in browser history (Range: 1-10)</comment>
                 </field>
                     
-                <field id="sort_order" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                <field id="sort_order" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Sort Order</label>
                     <source_model>Amadeco\PopularSearchTerms\Model\Config\Source\SortOrder</source_model>
                     <comment>How to sort the search terms</comment>
                 </field>
                     
-                <field id="time_period" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                <field id="time_period" translate="label comment" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                     <label>Time Period (days)</label>
                     <validate>validate-number validate-greater-than-zero</validate>
                     <comment>Number of days to look back for search terms</comment>
