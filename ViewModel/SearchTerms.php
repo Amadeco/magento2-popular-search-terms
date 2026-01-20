@@ -15,6 +15,8 @@ use Amadeco\PopularSearchTerms\Model\Config;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Framework\Serialize\SerializerInterface;
 use Magento\Framework\UrlInterface;
+// ADDED: Import QueryFactory for constant usage
+use Magento\Search\Model\QueryFactory;
 
 /**
  * ViewModel for Search Terms Configuration
@@ -24,7 +26,7 @@ class SearchTerms implements ArgumentInterface
     /**
      * Maximum allowed value for recent searches (History)
      */
-    private const MAX_ALLOWED_RECENT_SEARCHES = 10;
+    private const MAX_ALLOWED_RECENT_SEARCHES = 20;
 
     /**
      * Maximum allowed value for popular terms (Display)
@@ -74,7 +76,7 @@ class SearchTerms implements ArgumentInterface
         // 1. Resolve Max Recent Searches (Config vs XML)
         $defaultRecent = $this->config->getMaxRecentSearches();
         $maxRecent = $maxRecentSearches !== null ? (int)$maxRecentSearches : $defaultRecent;
-        // Cap Recent Searches (1-20)
+        // Cap Recent Searches (1-10)
         $safeMaxRecent = max(1, min($maxRecent, self::MAX_ALLOWED_RECENT_SEARCHES));
 
         // 2. Resolve Number of Terms (Config vs XML)
@@ -85,7 +87,7 @@ class SearchTerms implements ArgumentInterface
 
         // 3. Resolve Form Selectors
         $fId = $formId !== null ? (string)$formId : 'search_mini_form';
-        $iName = $inputName !== null ? (string)$inputName : 'q';
+        $iName = $inputName !== null ? (string)$inputName : QueryFactory::QUERY_VAR_NAME;
         $sKey = $storageKey !== null ? (string)$storageKey : 'recent-searches';
 
         // Fetch popular terms with the resolved limit
