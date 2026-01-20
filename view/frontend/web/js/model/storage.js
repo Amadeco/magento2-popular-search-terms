@@ -7,13 +7,12 @@
  */
 define([
     'jquery',
-    'Magento_Customer/js/customer-data',
     'underscore'
-], function($, storage, _) {
+], function($, _) {
     'use strict';
 
     /**
-     * Model for managing recent searches using Magento's customer-data storage
+     * Model for managing recent searches using Native LocalStorage
      */
     return {
         /**
@@ -22,12 +21,14 @@ define([
         defaults: {
             storageKey: 'recent-searches',
             formId: 'search_mini_form',
-            inputName: 'q'
+            inputName: 'q',
+            namespace: 'amadeco:'
         },
 
         /**
-         * Current configuration
+         * State flags
          */
+        storageAvailable: false,
         config: {},
 
         /**
@@ -37,16 +38,37 @@ define([
          */
         initialize: function(config) {
             this.config = _.extend({}, this.defaults, config || {});
+            this.storageAvailable = this._checkStorageAvailability();
             return this;
         },
 
         /**
-         * Get storage key
+         * Verify if LocalStorage is supported and available
+         * (Handles Private Browsing mode issues in Safari)
          *
-         * @returns {String}
+         * @private
+         * @return {boolean}
          */
-        getStorageKey: function() {
-            return this.config.storageKey;
+        _checkStorageAvailability: function() {
+            try {
+                var testKey = '__storage_test__';
+                window.localStorage.setItem(testKey, testKey);
+                window.localStorage.removeItem(testKey);
+                return true;
+            } catch (e) {
+                console.warn('Amadeco SearchTerms: LocalStorage is not available.');
+                return false;
+            }
+        },
+
+        /**
+         * Get namespaced key
+         *
+         * @private
+         * @return {String}
+         */
+        _getKey: function() {
+            return this.config.namespace + this.config.storageKey;
         },
 
         /**
@@ -68,18 +90,22 @@ define([
         },
 
         /**
-         * Get recent searches from storage
+         * Get recent searches from local storage
          *
          * @returns {Array}
          */
         getRecentSearches: function() {
-            var data = storage.get(this.getStorageKey())();
-
-            if (!data || !data.items) {
+            if (!this.storageAvailable) {
                 return [];
             }
 
-            return data.items;
+            try {
+                var data = window.localStorage.getItem(this._getKey());
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error('Error parsing search terms data', e);
+                return [];
+            }
         },
 
         /**
@@ -89,7 +115,7 @@ define([
          * @param {number} maxItems - Maximum number of recent searches to keep
          */
         addRecentSearch: function(term, maxItems) {
-            if (!term) {
+            if (!this.storageAvailable || !term) {
                 return;
             }
 
@@ -100,56 +126,56 @@ define([
 
             var recentSearches = this.getRecentSearches();
 
-            // Remove this term if it already exists (to avoid duplicates)
+            // Remove duplicates
             recentSearches = recentSearches.filter(function(search) {
                 return search.query_text.toLowerCase() !== term.toLowerCase();
             });
 
-            // Add the new term at the beginning
+            // Add new term to start
             recentSearches.unshift({
                 query_text: term,
                 timestamp: new Date().getTime()
             });
 
-            // Limit to max number of searches
+            // Slice to limit
             if (recentSearches.length > maxItems) {
                 recentSearches = recentSearches.slice(0, maxItems);
             }
 
-            // Save back to storage
-            storage.set(this.getStorageKey(), {
-                items: recentSearches
-            });
-
-            // Trigger event so components can update
-            $(document).trigger('recentSearchesUpdated', [recentSearches]);
+            // Save
+            try {
+                window.localStorage.setItem(this._getKey(), JSON.stringify(recentSearches));
+                $(document).trigger('recentSearchesUpdated', [recentSearches]);
+            } catch (e) {
+                console.error('Error saving search terms', e);
+            }
         },
 
         /**
          * Clear all recent searches
          */
         clearRecentSearches: function() {
-            storage.set(this.getStorageKey(), {
-                items: []
-            });
+            if (!this.storageAvailable) {
+                return;
+            }
 
+            window.localStorage.removeItem(this._getKey());
             $(document).trigger('recentSearchesUpdated', [[]]);
         },
 
         /**
          * Initialize observer for search form submissions
          *
-         * @param {number} maxItems - Maximum number of recent searches to keep
+         * @param {number} maxItems
          */
         initSearchObserver: function(maxItems) {
             var self = this;
             var formSelector = this.getFormSelector();
-            var inputSelector = this.getInputSelector();
-
-            // Watch for search form submissions
+            
+            // Event delegation is safer if the form is dynamically loaded
             $(document).on('submit', formSelector, function(e) {
+                var inputSelector = self.getInputSelector();
                 var searchTerm = $(this).find(inputSelector).val();
-
                 self.addRecentSearch(searchTerm, maxItems);
             });
         }
