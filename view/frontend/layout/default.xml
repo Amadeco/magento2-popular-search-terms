@@ -1,21 +1,15 @@
 <?xml version="1.0"?>
-<!--
-/**
- * Amadeco PopularSearchTerms Module
- *
- * @category   Amadeco
- * @package    Amadeco_PopularSearchTerms
- * @author     Ilan Parmentier
- */
--->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceContainer name="sidebar.additional">
-            <block class="Amadeco\PopularSearchTerms\Block\SearchTerms"
+            <block class="Magento\Framework\View\Element\Template"
                    name="amadeco.popular.search.terms"
+                   template="Amadeco_PopularSearchTerms::search_terms.phtml"
                    ifconfig="catalog/popular_search_terms/enabled">
                 <arguments>
+                    <argument name="view_model" xsi:type="object">Amadeco\PopularSearchTerms\ViewModel\SearchTerms</argument>
+                    <argument name="max_recent_searches" xsi:type="number">5</argument>
                     <argument name="jsLayout" xsi:type="array">
                         <item name="components" xsi:type="array">
                             <item name="search-terms" xsi:type="array">
