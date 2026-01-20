@@ -15,7 +15,6 @@ use Amadeco\PopularSearchTerms\Model\Config;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Framework\Serialize\SerializerInterface;
 use Magento\Framework\UrlInterface;
-// ADDED: Import QueryFactory for constant usage
 use Magento\Search\Model\QueryFactory;
 
 /**
