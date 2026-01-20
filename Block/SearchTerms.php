@@ -11,7 +11,7 @@ declare(strict_types=1);
 namespace Amadeco\PopularSearchTerms\Block;
 
 use Amadeco\PopularSearchTerms\Api\PopularTermsProviderInterface;
-use Amadeco\PopularSearchTerms\Model\Config; // Updated Import
+use Amadeco\PopularSearchTerms\Model\Config;
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
 use Magento\Framework\Serialize\SerializerInterface;
@@ -37,9 +37,9 @@ class SearchTerms extends Template
      */
     public function __construct(
         Context $context,
-        private readonly PopularTermsProviderInterface $popularTermsProvider, // Promoted
-        private readonly SerializerInterface $serializer, // Promoted
-        private readonly Config $config, // Updated Type
+        private readonly PopularTermsProviderInterface $popularTermsProvider,
+        private readonly SerializerInterface $serializer,
+        private readonly Config $config,
         array $data = []
     ) {
         parent::__construct($context, $data);
@@ -67,8 +67,12 @@ class SearchTerms extends Template
         $inputName = $this->getData('search_input_name') ?? 'q';
         $storageKey = $this->getData('storage_key') ?? 'recent-searches';
 
+        // Performance Fix: Fetch terms server-side to cache with FPC
+        // and avoid expensive AJAX calls on every page load.
+        $initialTerms = $this->popularTermsProvider->getPopularTerms();
+
         return [
-            'ajaxUrl' => $this->getUrl('amadeco_popularterms/ajax/getterms'),
+            'initialTerms' => $initialTerms, // Inject data directly
             'numberOfTerms' => $this->config->getNumberOfTerms(),
             'sortOrder' => $this->config->getSortOrder(),
             'searchResultUrl' => $this->getUrl('catalogsearch/result/'),
