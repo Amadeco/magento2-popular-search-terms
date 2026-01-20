@@ -19,7 +19,8 @@ interface PopularTermsProviderInterface
      * Get popular search terms
      *
      * @param int|null $storeId
+     * @param int|null $limit Optional limit override
      * @return array<int, array{query_text: string, popularity: int, updated_at: string}>
      */
-    public function getPopularTerms(?int $storeId = null): array;
+    public function getPopularTerms(?int $storeId = null, ?int $limit = null): array;
 }
