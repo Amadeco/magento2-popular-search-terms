@@ -11,15 +11,16 @@ declare(strict_types=1);
 namespace Amadeco\PopularSearchTerms\Model;
 
 use Amadeco\PopularSearchTerms\Api\PopularTermsProviderInterface;
-use Amadeco\PopularSearchTerms\Model\Config; // Updated Import
 use Amadeco\PopularSearchTerms\Model\Config\Source\SortOrder;
+use Magento\Framework\Stdlib\DateTime;
+use Magento\Framework\Stdlib\DateTime\DateTime as ConvertDateTime;
 use Magento\Search\Model\Query;
 use Magento\Search\Model\ResourceModel\Query\Collection as QueryCollection;
 use Magento\Search\Model\ResourceModel\Query\CollectionFactory as QueryCollectionFactory;
 use Magento\Store\Model\StoreManagerInterface;
 
 /**
- * Popular Terms Provider
+ * Popular Terms Provider Service
  */
 class PopularTermsProvider implements PopularTermsProviderInterface
 {
@@ -27,11 +28,13 @@ class PopularTermsProvider implements PopularTermsProviderInterface
      * @param Config $config
      * @param QueryCollectionFactory $queryCollectionFactory
      * @param StoreManagerInterface $storeManager
+     * @param ConvertDateTime $dateTime
      */
     public function __construct(
-        private readonly Config $config, // Promoted & Typed
+        private readonly Config $config,
         private readonly QueryCollectionFactory $queryCollectionFactory,
-        private readonly StoreManagerInterface $storeManager
+        private readonly StoreManagerInterface $storeManager,
+        private readonly ConvertDateTime $dateTime
     ) {}
 
     /**
@@ -42,7 +45,6 @@ class PopularTermsProvider implements PopularTermsProviderInterface
      */
     public function getPopularTerms(?int $storeId = null): array
     {
-        // Logic remains identical, just referencing the new Config object
         if (!$this->config->isEnabled($storeId)) {
             return [];
         }
@@ -54,18 +56,23 @@ class PopularTermsProvider implements PopularTermsProviderInterface
         /** @var QueryCollection $collection */
         $collection = $this->queryCollectionFactory->create();
 
+        // Native method to configure collection for popularity
         $collection->setPopularQueryFilter($storeId);
 
+        // Apply time period filter if configured
         $timePeriod = $this->config->getTimePeriod($storeId);
         if ($timePeriod > 0) {
-            $dateLimit = date('Y-m-d H:i:s', strtotime("-$timePeriod days"));
+            // FIX: Use Magento GMT Date for DB comparison to ensure timezone consistency
+            $dateLimit = $this->ConvertDateTime->gmtDate(DateTime::DATETIME_PHP_FORMAT, strtotime("-$timePeriod days"));
             $collection->addFieldToFilter('updated_at', ['gt' => $dateLimit]);
         }
 
+        // Apply sort order
         if ($this->config->getSortOrder($storeId) === SortOrder::SORT_BY_RECENCY) {
             $collection->setRecentQueryFilter();
         }
 
+        // Limit results
         $collection->setPageSize($this->config->getNumberOfTerms($storeId));
 
         $result = [];
