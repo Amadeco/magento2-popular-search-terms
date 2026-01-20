@@ -39,8 +39,8 @@ define([
             storageModel.initialize(this.storageConfig);
             storageModel.initSearchObserver(this.maxRecentSearches);
 
-            // Load data when component initializes
-            this.loadTerms();
+            // Load data (Performance Fix: Load from injected config, no AJAX)
+            this.initPopularTerms();
             this.loadRecentSearches();
 
             // Listen for updated recent searches
@@ -48,6 +48,21 @@ define([
             $(document).on('recentSearchesUpdated', function(event, searches) {
                 self.recentSearches(searches);
             });
+        },
+
+        /**
+         * Initialize popular terms from window config
+         */
+        initPopularTerms: function () {
+            // Check if terms are provided in the config (Server-Side Rendered)
+            if (window.searchTermsConfig && window.searchTermsConfig.initialTerms) {
+                this.terms(window.searchTermsConfig.initialTerms);
+                this.loading(false);
+            } else {
+                // Fallback if no terms are found or module disabled
+                this.loading(false);
+                // Optional: We could set an empty state or error here if strict
+            }
         },
 
         /**
@@ -86,38 +101,6 @@ define([
             }
 
             return config;
-        },
-
-        /**
-         * Load popular search terms via AJAX
-         */
-        loadTerms: function () {
-            var self = this;
-
-            self.loading(true);
-            self.error(false);
-
-            $.ajax({
-                url: window.searchTermsConfig.ajaxUrl,
-                type: 'GET',
-                dataType: 'json',
-                cache: true,
-                success: function (response) {
-                    self.loading(false);
-
-                    if (response.success && response.terms) {
-                        self.terms(response.terms);
-                    } else {
-                        self.error(true);
-                        self.errorMessage(response.message || $t('Failed to load popular search terms.'));
-                    }
-                },
-                error: function (xhr, status, error) {
-                    self.loading(false);
-                    self.error(true);
-                    self.errorMessage($t('An error occurred while loading popular search terms.'));
-                }
-            });
         },
 
         /**
