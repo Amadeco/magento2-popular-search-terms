@@ -22,6 +22,11 @@ use Magento\Framework\UrlInterface;
 class SearchTerms implements ArgumentInterface
 {
     /**
+     * Maximum allowed value for recent searches to prevent storage bloat.
+     */
+    private const MAX_ALLOWED_RECENT_SEARCHES = 50;
+    
+    /**
      * @param PopularTermsProviderInterface $popularTermsProvider
      * @param SerializerInterface $serializer
      * @param Config $config
@@ -59,6 +64,9 @@ class SearchTerms implements ArgumentInterface
         string $inputName = 'q',
         string $storageKey = 'recent-searches'
     ): array {
+        // Enforce a hard limit (cap) and ensure positive integer
+        $safeMaxRecent = max(1, min($maxRecentSearches, self::MAX_ALLOWED_RECENT_SEARCHES));
+
         // Fetch terms server-side (Performance fix from Phase 3)
         $initialTerms = $this->popularTermsProvider->getPopularTerms();
 
