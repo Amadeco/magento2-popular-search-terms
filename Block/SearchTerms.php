@@ -11,7 +11,7 @@ declare(strict_types=1);
 namespace Amadeco\PopularSearchTerms\Block;
 
 use Amadeco\PopularSearchTerms\Api\PopularTermsProviderInterface;
-use Amadeco\PopularSearchTerms\Helper\Config;
+use Amadeco\PopularSearchTerms\Model\Config; // Updated Import
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
 use Magento\Framework\Serialize\SerializerInterface;
@@ -29,21 +29,6 @@ class SearchTerms extends Template
     protected $_template = 'Amadeco_PopularSearchTerms::search_terms.phtml';
 
     /**
-     * @var PopularTermsProviderInterface
-     */
-    private PopularTermsProviderInterface $popularTermsProvider;
-
-    /**
-     * @var SerializerInterface
-     */
-    private SerializerInterface $serializer;
-
-    /**
-     * @var Config
-     */
-    private Config $config;
-
-    /**
      * @param Context $context
      * @param PopularTermsProviderInterface $popularTermsProvider
      * @param SerializerInterface $serializer
@@ -52,15 +37,12 @@ class SearchTerms extends Template
      */
     public function __construct(
         Context $context,
-        PopularTermsProviderInterface $popularTermsProvider,
-        SerializerInterface $serializer,
-        Config $config,
+        private readonly PopularTermsProviderInterface $popularTermsProvider, // Promoted
+        private readonly SerializerInterface $serializer, // Promoted
+        private readonly Config $config, // Updated Type
         array $data = []
     ) {
         parent::__construct($context, $data);
-        $this->popularTermsProvider = $popularTermsProvider;
-        $this->serializer = $serializer;
-        $this->config = $config;
     }
 
     /**
