@@ -7,21 +7,27 @@
  * @author     Ilan Parmentier
  */
 
+use Amadeco\PopularSearchTerms\ViewModel\SearchTerms;
+use Magento\Framework\View\Element\Template;
+use Magento\Framework\View\Helper\SecureHtmlRenderer;
+
 /**
- * @var \Amadeco\PopularSearchTerms\Block\SearchTerms $block
- * @var \Magento\Framework\Escaper $escaper
- * @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer
+ * @var Template $block
+ * @var SecureHtmlRenderer $secureRenderer
+ * @var SearchTerms $viewModel
  */
+
+// Retrieve ViewModel
+$viewModel = $block->getData('view_model');
 ?>
-<?php if ($block->isEnabled()): ?>
+<?php if ($viewModel && $viewModel->isEnabled()): ?>
     <div class="block block-search-terms">
         <div class="block-title">
-            <strong role="heading" aria-level="2"><?= $escaper->escapeHtml(__('Search Terms')) ?></strong>
+            <strong role="heading" aria-level="2"><?= $block->escapeHtml(__('Search Terms')) ?></strong>
         </div>
         <div class="block-content">
             <div id="amadeco-search-terms" data-bind="scope: 'search-terms'" class="amadeco-search-terms">
-                <!-- ko template: getTemplate() --><!-- /ko -->
-            </div>
+                </div>
         </div>
     </div>
 
@@ -33,7 +39,15 @@
     }
     </script>
 
-    <?php $jsonConfig = /* @noEscape */ $block->getSerializedSearchTermsConfig();
+    <?php
+    // Get configuration values from block arguments to pass to ViewModel
+    $maxRecent = (int)($block->getData('max_recent_searches') ?? 5);
+    $formId = (string)($block->getData('search_form_id') ?? 'search_mini_form');
+    $inputName = (string)($block->getData('search_input_name') ?? 'q');
+    $storageKey = (string)($block->getData('storage_key') ?? 'recent-searches');
+    
+    $jsonConfig = /* @noEscape */ $viewModel->getSerializedSearchTermsConfig($maxRecent, $formId, $inputName, $storageKey);
+    
     $scriptString = <<<script
         window.searchTermsConfig = {$jsonConfig};
     script;
