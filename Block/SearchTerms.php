@@ -23,22 +23,27 @@ use Magento\Framework\View\Element\Template\Context;
 /**
  * Block for Popular Search Terms UI Component.
  *
- * This block enriches the static JsLayout configuration defined in XML with
- * dynamic search terms and store-specific URLs.
+ * Refactored for PHP 8.3 compliance and improved readability.
+ * Injects dynamic configuration into the UI Component's JsLayout.
  */
 class SearchTerms extends Template implements IdentityInterface
 {
     /**
-     * Default number of terms if none provided in XML or System Config.
+     * Default number of terms fallback.
      */
-    private const DEFAULT_TERMS_LIMIT = 5;
+    private const int DEFAULT_TERMS_LIMIT = 5;
+
+    /**
+     * Cache tag for this block.
+     */
+    private const string CACHE_TAG = 'amadeco_popular_search_terms';
 
     /**
      * @param Context $context
      * @param PopularTermsProviderInterface $popularTermsProvider
      * @param Config $config
      * @param SerializerInterface $serializer
-     * @param array $data
+     * @param array<string, mixed> $data
      */
     public function __construct(
         Context $context,
@@ -51,54 +56,64 @@ class SearchTerms extends Template implements IdentityInterface
     }
 
     /**
-     * Enriches the JsLayout 'config' with dynamic search data.
-     *
-     * Injects:
-     * - initialTerms: The list of popular terms from the provider.
-     * - searchResultUrl: The base URL for catalog search results.
+     * Enriches the JsLayout configuration with dynamic search data.
      *
      * @return string JSON serialized layout configuration.
      */
     public function getJsLayout(): string
     {
-        $layout = $this->serializer->unserialize(parent::getJsLayout());
-
-        if (isset($layout['components']['search-terms'])) {
-            $component = &$layout['components']['search-terms'];
-            $componentConfig = $component['config'] ?? [];
-
-            // Determine Loading Mode
-            $loadMethod = $this->config->getLoadMethod();
-            $isAjax = ($loadMethod === LoadMethod::LOADING_AJAX);
-
-            // Initialize variables
-            $initialTerms = [];
-            $ajaxUrl = '';
-
-            if ($isAjax) {
-                // AJAX Mode: Empty terms, Provide URL
-                $ajaxUrl = $this->getUrl('amadeco_popularterms/ajax/getterms');
-            } else {
-                // Direct Mode: Fetch terms, No URL
-                $xmlLimit = isset($componentConfig['number_of_terms'])
-                    ? (int)$componentConfig['number_of_terms']
-                    : null;
-                $initialTerms = $this->fetchPopularTerms($xmlLimit);
-            }
-
-            // Inject Configuration
-            $component['config'] = array_merge($componentConfig, [
-                'initialTerms' => $initialTerms,
-                'ajaxUrl' => $ajaxUrl,
-                'searchResultUrl' => $this->getUrl('catalogsearch/result/')
-            ]);
+        // Prevent processing if module is disabled
+        if (!$this->isEnabled()) {
+            return parent::getJsLayout();
         }
 
-        return (string)$this->serializer->serialize($layout);
+        $layout = $this->serializer->unserialize(parent::getJsLayout());
+
+        // Fail fast if the component structure is missing
+        if (!isset($layout['components']['search-terms']['config'])) {
+            return parent::getJsLayout();
+        }
+
+        // Inject the dynamic configuration
+        $layout['components']['search-terms']['config'] = array_replace_recursive(
+            $layout['components']['search-terms']['config'],
+            $this->getComponentConfig($layout['components']['search-terms']['config'])
+        );
+
+        return $this->serializer->serialize($layout);
     }
 
     /**
-     * Checks if the module functionality is enabled globally.
+     * Prepare the configuration array for the UI Component.
+     *
+     * @param array<string, mixed> $existingConfig
+     * @return array<string, mixed>
+     */
+    private function getComponentConfig(array $existingConfig): array
+    {
+        $isAjax = $this->config->getLoadMethod() === LoadMethod::LOADING_AJAX;
+
+        if ($isAjax) {
+            return [
+                'initialTerms' => [],
+                'ajaxUrl' => $this->getUrl('amadeco_popularterms/ajax/getterms'),
+                'searchResultUrl' => $this->getUrl('catalogsearch/result/'),
+            ];
+        }
+
+        $limit = isset($existingConfig['numberOfTerms'])
+            ? (int)$existingConfig['numberOfTerms']
+            : null;
+
+        return [
+            'initialTerms' => $this->fetchPopularTerms($limit),
+            'ajaxUrl' => '',
+            'searchResultUrl' => $this->getUrl('catalogsearch/result/'),
+        ];
+    }
+
+    /**
+     * Checks if the module functionality is enabled.
      *
      * @return bool
      */
@@ -108,29 +123,24 @@ class SearchTerms extends Template implements IdentityInterface
     }
 
     /**
-     * Prevents block rendering if the module is disabled.
+     * Conditionally renders the block HTML.
      *
      * @return string
      */
     protected function _toHtml(): string
     {
-        if (!$this->isEnabled()) {
-            return '';
-        }
-        return parent::_toHtml();
+        return $this->isEnabled() ? parent::_toHtml() : '';
     }
 
     /**
-     * Resolves the terms limit and fetches data from the provider.
+     * Fetches popular terms based on configuration logic.
      *
-     * Priority: XML Argument > System Config > Default Constant.
-     *
-     * @param null|int $xmlLimit Limit provided in the jsLayout/config XML.
-     * @return array Array of search terms data.
+     * @param int|null $xmlLimit
+     * @return array<int, mixed>
      */
     private function fetchPopularTerms(?int $xmlLimit = null): array
     {
-        $limit = $xmlLimit ?: $this->config->getNumberOfTerms() ?: self::DEFAULT_TERMS_LIMIT;
+        $limit = $xmlLimit ?? $this->config->getNumberOfTerms() ?? self::DEFAULT_TERMS_LIMIT;
 
         return $this->popularTermsProvider->getPopularTerms(
             null,
@@ -139,47 +149,41 @@ class SearchTerms extends Template implements IdentityInterface
     }
 
     /**
-     * Get cache lifetime
+     * Get unique cache identities.
      *
-     * @return int|null
-     */
-    protected function getCacheLifetime()
-    {
-        if (!$this->isEnabled()) {
-            return parent::getCacheLifetime();
-        }
-
-        $lifetime = $this->config->getCacheLifetime();
-        return $lifetime ?? 3600;
-    }
-
-    /**
-     * Return identifiers for produced content
-     *
-     * @return array
+     * @return string[]
      */
     public function getIdentities(): array
     {
-        return [];
+        return [self::CACHE_TAG, self::CACHE_TAG . '_' . $this->_storeManager->getStore()->getId()];
     }
 
     /**
-     * Get cache key informative items
+     * Get cache lifetime.
      *
-     * @return array
+     * @return int|null
+     */
+    protected function getCacheLifetime(): ?int
+    {
+        return $this->isEnabled() ? ($this->config->getCacheLifetime() ?? 3600) : null;
+    }
+
+    /**
+     * Get cache key info.
+     *
+     * @return array<int, mixed>
      */
     public function getCacheKeyInfo(): array
     {
-        return array_merge(
-            parent::getCacheKeyInfo(),
-            [
-                $this->_storeManager->getStore()->getId(),
-                $this->config->getLoadMethod(),
-                $this->config->getNumberOfTerms(),
-                $this->config->getSortOrder(),
-                $this->config->getTimePeriod(),
-                $this->config->getCacheLifetime()
-            ]
-        );
+        return [
+            ...parent::getCacheKeyInfo(),
+            'amadeco_popular_search_terms',
+            $this->_storeManager->getStore()->getId(),
+            $this->config->getLoadMethod(),
+            $this->config->getNumberOfTerms(),
+            $this->config->getSortOrder(),
+            $this->config->getTimePeriod(),
+            (string)$this->config->getCacheLifetime()
+        ];
     }
 }

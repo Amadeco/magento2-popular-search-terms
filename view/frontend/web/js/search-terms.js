@@ -20,7 +20,7 @@ define([
     /**
      * Search Terms UI Component
      *
-     * This component manages popular search terms provided by the server 
+     * This component manages popular search terms provided by the server
      * and user search history persisted in LocalStorage.
      *
      * @api
@@ -28,7 +28,7 @@ define([
     return Component.extend({
         /**
          * Component configuration defaults.
-         * These values are automatically overridden by the 'config' array 
+         * These values are automatically overridden by the 'config' array
          * injected by Amadeco\PopularSearchTerms\Block\SearchTerms::getJsLayout.
          */
         defaults: {
@@ -39,11 +39,9 @@ define([
             sortOrder: 'popularity',
             searchResultUrl: '',
             maxRecentSearches: 5,
-            searchForm: {
-                formId: 'search_mini_form',
-                inputName: 'q',
-                storageKey: 'recent-searches'
-            }
+            searchFormId: 'search_mini_form',
+            searchInputName: 'q',
+            storageKey: 'recent-searches'
         },
 
         /**
@@ -60,20 +58,27 @@ define([
             this.error = ko.observable(false);
             this.errorMessage = ko.observable('');
             this.loading = ko.observable(false);
-            
+
             this.hasRecentSearches = ko.pureComputed(function () {
                 return this.recentSearches().length > 0;
             }, this);
 
             // 2. Initialize Persistence Model
-            // Values like this.searchForm and this.maxRecentSearches are now 
+            // Values like this.searchForm and this.maxRecentSearches are now
             // natively available thanks to the Block injection.
-            storageModel.initialize(this.searchForm);
+            var storageConfig = {
+                formId: this.searchFormId,
+                inputName: this.searchInputName,
+                storageKey: this.storageKey
+            };
+
+            console.log(storageConfig);
+            storageModel.initialize(storageConfig);
             storageModel.initSearchObserver(parseInt(this.maxRecentSearches, 10));
 
             // 3. Load initial data
             this.loadRecentSearches();
-            
+
             // 4. AJAX Loading Trigger
             if (this.ajaxUrl && this.terms().length === 0) {
                 this.fetchTerms();
