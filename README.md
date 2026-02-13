@@ -92,11 +92,11 @@ The module is now deeply integrated with Magento's `jsLayout` system. You can ov
                         <item name="component" xsi:type="string">Amadeco_PopularSearchTerms/js/search-terms</item>
                         <item name="config" xsi:type="array">
                             <item name="template" xsi:type="string">Amadeco_PopularSearchTerms/search-terms-template</item>
-                            <item name="max_recent_searches" xsi:type="number">5</item>
-                            <item name="number_of_terms" xsi:type="number">10</item>
-                            <item name="search_form_id" xsi:type="string">search_mini_form</item>
-                            <item name="search_input_name" xsi:type="string">q</item>
-                            <item name="storage_key" xsi:type="string">recent-searches</item>
+                            <item name="maxRecentSearches" xsi:type="number">5</item>
+                            <item name="numberOfTerms" xsi:type="number">10</item>
+                            <item name="searchFormId" xsi:type="string">search_mini_form</item>
+                            <item name="searchInputName" xsi:type="string">q</item>
+                            <item name="storageKey" xsi:type="string">recent-searches</item>
                         </item>
                     </item>
                 </item>
