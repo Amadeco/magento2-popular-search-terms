@@ -4,6 +4,8 @@
  * @category    Amadeco
  * @package     Amadeco_PopularSearchTerms
  * @author      Ilan Parmentier
+ * @copyright   Copyright (c) Amadeco (https://www.amadeco.fr)
+ * @license     OSL-3.0
  */
 define([
     'jquery',
@@ -13,10 +15,20 @@ define([
     'use strict';
 
     /**
-     * Model for managing recent searches using Magento's jQuery Storage API.
-     * This replaces raw window.localStorage with a robust, namespaced solution.
+     * Storage Model for managing recent user searches.
+     * Utilizes Magento's jQuery Storage API wrapper for namespaced LocalStorage,
+     * ensuring safe, JSON-parsed data retrieval without manual stringification.
+     *
+     * @api
      */
     return {
+        /**
+         * @property {Object} defaults - Default configuration parameters.
+         * @property {String} defaults.storageKey - The key used within the namespace to store searches.
+         * @property {String} defaults.formId - The default HTML ID of the Magento search form.
+         * @property {String} defaults.inputName - The default name attribute of the search input field.
+         * @property {String} defaults.namespace - The namespace prefix for LocalStorage.
+         */
         defaults: {
             storageKey: 'recent-searches',
             formId: 'search_mini_form',
@@ -25,20 +37,20 @@ define([
         },
 
         /**
-         * @var {Object}
+         * @property {Object|null} storage - The instantiated Magento storage namespace object.
          */
         storage: null,
 
         /**
-         * @var {Object}
+         * @property {Object} config - The finalized configuration after merging defaults with block parameters.
          */
         config: {},
 
         /**
-         * Initialize configuration and storage mechanism.
+         * Initializes the storage model configuration and sets up the LocalStorage namespace.
          *
-         * @param {Object} config
-         * @return {Object} this
+         * @param {Object} config - Dynamic configuration object injected from the Magento Block XML.
+         * @returns {Object} Chainable reference to this storage model.
          */
         initialize: function (config) {
             this.config = _.extend({}, this.defaults, config || {});
@@ -48,10 +60,10 @@ define([
         },
 
         /**
-         * Get recent searches from local storage.
-         * The wrapper automatically handles JSON parsing.
+         * Retrieves the recent searches array from local storage.
+         * Guarantees an array return type to prevent UI Component rendering errors.
          *
-         * @return {Array}
+         * @returns {Array<Object>} Array of search term objects containing query_text and timestamp.
          */
         getRecentSearches: function () {
             var data = this.storage.get(this.config.storageKey);
@@ -59,13 +71,15 @@ define([
         },
 
         /**
-         * Add a search term to recent searches.
+         * Adds a new search term to the local storage history.
+         * Automatically sanitizes, deduplicates, enforces history limits, and triggers a global UI update.
          *
-         * @param {String} term
-         * @param {Number} maxItems
+         * @param {String} term - The raw search query entered by the user.
+         * @param {Number} maxItems - The maximum number of terms to retain in history.
+         * @returns {void}
          */
         addRecentSearch: function (term, maxItems) {
-            if (!term) {
+            if (!term || typeof term !== 'string') {
                 return;
             }
 
@@ -76,72 +90,78 @@ define([
 
             var recentSearches = this.getRecentSearches();
 
-            // Remove duplicates (case insensitive)
+            // Native Array.filter is optimized for V8 engine execution speed
             recentSearches = recentSearches.filter(function (search) {
                 return search.query_text.toLowerCase() !== term.toLowerCase();
             });
 
-            // Add new term to start
+            // Prepend the newest search at index 0
             recentSearches.unshift({
                 query_text: term,
-                timestamp: new Date().getTime()
+                timestamp: Date.now()
             });
 
-            // Slice to limit
+            // Enforce the maximum item limit based on backend configuration
             if (recentSearches.length > maxItems) {
                 recentSearches = recentSearches.slice(0, maxItems);
             }
 
-            // Save (Storage API handles JSON stringify automatically)
             try {
                 this.storage.set(this.config.storageKey, recentSearches);
-                $(document).trigger('recentSearchesUpdated', [recentSearches]);
+                // Broadcast namespaced event to immediately update any active UI Components
+                $(document).trigger('recentSearchesUpdated.amadecoSearchTerms', [recentSearches]);
             } catch (e) {
-                console.error('Amadeco SearchTerms: Error saving to storage', e);
+                // Fails gracefully in Private Browsing modes where LocalStorage may be restricted
+                console.error('Amadeco SearchTerms: LocalStorage quota exceeded or unavailable.', e);
             }
         },
 
         /**
-         * Clear all recent searches.
+         * Purges all recent searches from local storage and instantly notifies components to clear the UI.
+         *
+         * @returns {void}
          */
         clearRecentSearches: function () {
             this.storage.remove(this.config.storageKey);
-            $(document).trigger('recentSearchesUpdated', [[]]);
+            $(document).trigger('recentSearchesUpdated.amadecoSearchTerms', [[]]);
         },
 
         /**
-         * Get form selector based on ID.
+         * Generates the jQuery selector for the configured search form.
          *
-         * @return {String}
+         * @returns {String} CSS ID selector.
          */
         getFormSelector: function () {
             return '#' + this.config.formId;
         },
 
         /**
-         * Get input selector
+         * Generates the jQuery selector for the configured search input field.
          *
-         * @return {String}
+         * @returns {String} CSS attribute selector.
          */
         getInputSelector: function () {
             return 'input[name="' + this.config.inputName + '"]';
         },
 
         /**
-         * Initialize observer for search form submissions
+         * Initializes a delegated event listener on the document to catch search form submissions.
+         * Utilizes an idempotent .off().on() pattern to ensure memory safety in Single Page Applications
+         * and prevent ghost event stacking on dynamic re-renders.
          *
-         * @param {number} maxItems
+         * @param {Number} maxItems - Maximum history size to pass to the handler.
+         * @returns {void}
          */
         initSearchObserver: function(maxItems) {
-            var self = this;
             var formSelector = this.getFormSelector();
 
-            // Event delegation is safer if the form is dynamically loaded
-            $(document).on('submit', formSelector, function(e) {
-                var inputSelector = self.getInputSelector();
-                var searchTerm = $(this).find(inputSelector).val();
-                self.addRecentSearch(searchTerm, maxItems);
-            });
+            $(document)
+                .off('submit.amadecoSearchTerms', formSelector)
+                .on('submit.amadecoSearchTerms', formSelector, function (e) {
+                    var inputSelector = this.getInputSelector();
+                    var searchTerm = $(e.currentTarget).find(inputSelector).val();
+                    this.addRecentSearch(searchTerm, maxItems);
+                }.bind(this));
         }
     };
 });

@@ -1,19 +1,19 @@
 <!-- Search Terms Knockout Template (Popular and Recent) -->
 <div class="search-terms-container">
     <!-- Loading indicator -->
-    <div data-bind="visible: loading()" class="search-terms-loading">
+    <div data-bind="visible: loading" class="search-terms-loading">
         <div class="loader">
             <img data-bind="attr: {src: require.toUrl('images/loader-1.gif')}" alt="Loading...">
         </div>
     </div>
 
     <!-- Error message -->
-    <div data-bind="visible: error() && !loading()" class="search-terms-error">
+    <div data-bind="visible: error && !loading" class="search-terms-error">
         <span data-bind="text: errorMessage"></span>
     </div>
 
     <!-- Recent Searchs -->
-    <div data-bind="visible: !loading() && hasRecentSearches()" class="recent-searches-section">
+    <div data-bind="visible: !loading && hasRecentSearches()" class="recent-searches-section">
         <h4 data-bind="i18n: 'Your Recent Searches'"></h4>
         <ul class="recent-searches-list" data-bind="foreach: recentSearches">
             <li>
@@ -27,7 +27,7 @@
     </div>
 
     <!-- Popular Searchs -->
-    <div data-bind="visible: !loading() && !error() && terms().length > 0" class="popular-terms-section">
+    <div data-bind="visible: !loading && !error && terms.length > 0" class="popular-terms-section">
         <h4 data-bind="i18n: 'Popular Search Terms'"></h4>
         <ul class="popular-terms-list" data-bind="foreach: terms">
             <li>
@@ -38,7 +38,7 @@
     </div>
 
     <!-- No terms message -->
-    <div data-bind="visible: !loading() && !error() && terms().length === 0 && !hasRecentSearches()" class="no-terms-message">
+    <div data-bind="visible: !loading && !error && terms.length === 0 && !hasRecentSearches()" class="no-terms-message">
         <span data-bind="i18n: 'No search terms available.'"></span>
     </div>
 </div>
